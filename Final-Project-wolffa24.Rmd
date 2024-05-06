@@ -1,0 +1,341 @@
+---
+title: "BUS 316 - Final Project"
+author: "Alex Wolff"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+### Load Packages
+```{r load_packages, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(lubridate)
+library(knitr)
+library(RMySQL)
+options(scipen = 999)
+```
+
+### Load Data
+```{r load_data, message=FALSE, warning=FALSE}
+salary_data <- read.csv("https://ballenger.wlu.edu/bus316/State_University_Salary_Data_AY_2015-16.csv")
+```
+
+### Explore Data
+```{r explore_data, message=FALSE, warning=FALSE}
+str(salary_data)
+summary(salary_data)
+```
+
+### Check Data
+```{r check_data, message=FALSE, warning=FALSE, results='hide'}
+salary_data %>%
+  distinct(dept) %>%
+  arrange(dept)
+```
+
+### Question 1
+```{r question_1, message=FALSE, warning=FALSE}
+salary_data <- salary_data %>%
+  rename(state_service_yrs = stservyr,
+         state_salary = statesal,
+         non_state_salary = nonstsal,
+         total_salary = totalsal)
+
+str(salary_data)
+```
+
+### Question 2
+```{r question_2, message=FALSE, warning=FALSE}
+mean_total_salary <- mean(salary_data$total_salary[salary_data$dept == "Neurosurgery"])
+
+result_1 <- data.frame(mean_total_salary = mean_total_salary)
+result_2 <- data.frame(dept = "Neurosurgery", mean_total_salary = mean_total_salary)
+
+kable(result_1)
+kable(result_2)
+```
+
+### Question 3
+```{r question_3, message=FALSE, warning=FALSE}
+fulltime <- salary_data[salary_data$fte == 1, 
+                        c("name", "dept", "age", "status", 
+                          "state_salary", "non_state_salary", 
+                          "total_salary")]
+kable(fulltime %>% 
+        slice(1:15))
+```
+
+```{r question_3_hist_1, fig.align='center', message=FALSE, warning=FALSE}
+ggplot(data = fulltime, aes(x = age)) +
+  geom_histogram() +
+  labs(title = "Histogram of Age of Fulltime Employees", 
+       x = "Age (years)", 
+       y = "Frequency")
+```
+
+The distribution of age is unimodal and slightly skewed to the right
+
+```{r question_3_hist_2, fig.align='center', message=FALSE, warning=FALSE}
+ggplot(data = fulltime, aes(x = total_salary)) +
+  geom_histogram() +
+  labs(title = "Histogram of Salaries of Fulltime Employees", 
+       x = "Salaries (dollars)", 
+       y = "Frequency")
+```
+
+This graph shows an exponential distribution that goes off the left. The graph is right skewed. 
+
+```{r question_3_plot_1, fig.align='center', message=FALSE, warning=FALSE}
+ggplot(data = fulltime, aes(x = age, y=total_salary)) +
+  geom_point() +
+  geom_smooth() +
+  labs(title = "Plot of Age vs Total Salary", 
+       x = "Age (years)", 
+       y = "Salaries (dollars)")
+```
+
+The graph shows a slight positive trend with age and salary. Hence, as the age increase the salary also increases on average. 
+
+```{r question_3_plot_2, fig.align='center', message=FALSE, warning=FALSE}
+ggplot(data = fulltime, aes(x = age, y=total_salary)) +
+  geom_point() +
+  geom_smooth() +
+  ylim(10000, 250000) +
+  labs(title = "Plot of Age vs Total Salary", 
+       x = "Age (years)", 
+       y = "Salaries (dollars)")
+```
+
+### Question 4
+```{r question_4, message=FALSE, warning=FALSE}
+kable(fulltime %>%
+        filter(dept == "Neurosurgery" & total_salary > 500000))
+```
+
+These professor are paid well due to the nature of the field they work in. To become a neurosurgeon takes multiple years of medical school and is therefore very difficult to attain that title. Since the market of neurosurgery professors is very limited they get paid highly.
+
+### Question 5
+```{r question_5, message=FALSE, warning=FALSE}
+radiology_dept <- fulltime %>% 
+  filter(dept == "Radiology") %>%
+  arrange(desc(total_salary))
+
+kable(radiology_dept %>%
+        slice(1:10))
+```
+
+```{r question_5_hist, fig.align='center', fig.height=5, fig.width=8, message=FALSE, warning=FALSE}
+ggplot(data = radiology_dept, aes(x = total_salary)) +
+  geom_histogram(binwidth = 20000) +
+  labs(title = "Histogram of Salaries of Full Time Radiologist", 
+       x = "Salaries (Dollars)", 
+       y = "Frequency")
+```
+
+The distribution of the salaries is bimodal and is skewed to the right. There are outliers on the upper extremities of the graph. Based of the graph, there is most likely a base salary for radiologist as they enter the field which is represented in the first hump of this graph. Then as they advance in their career and maybe specialize in different diagnosis there salary increase, which would be the second hump. The bimodal nature of the graph is due to the progression of careers in this field. Furthermore, the distribution of the of the radiologist salaries could also be due to the positions they hole. For example, technicians, which are considered radiologist are paid less than than professor, which furhter explains the distribution of the graph.
+
+### Question 6
+```{r question_6_1, fig.align='center', fig.height=5, fig.width=8, message=FALSE, warning=FALSE}
+fulltime %>%
+  filter(dept %in% c("Biostatistics", 
+                     "Computer Science",
+                     "Economics",
+                     "Kenan-Flagler Business School",
+                     "Mathematics",
+                     "Statistics and Operations Res")) %>%
+  ggplot(aes(x = total_salary)) +  
+        geom_histogram() +  
+        facet_wrap(~ dept) +
+        labs(title = "Histogram of Salaries by Department", 
+             x = "Salaries (Dollars)", 
+             y = "Frequency")
+```
+
+There appear to be only small differences in the distribution of salaries across the 6 departments except for the Kenan-Flagler Business School. All the other graphs are unimodal and have a median around 100000; Computer Science and Biostatistics have very slight right skew. The Kenan-Flagler Business School is exponentially distributed going up the left side of the histogram; the graph is right skewed.
+
+```{r question_6_2, fig.align='center', fig.height=5, fig.width=8, message=FALSE, warning=FALSE}
+fulltime %>%
+  filter(dept %in% c("Biostatistics", 
+                     "Computer Science",
+                     "Economics",
+                     "Kenan-Flagler Business School",
+                     "Mathematics",
+                     "Statistics and Operations Res")) %>%
+  ggplot(aes(x = age, y = total_salary, color = status, alpha = 0.5)) +
+    geom_point() +
+    facet_wrap(~ dept) +
+    labs(title = "Scatter Plot of Total Salaries by Department and Age", 
+          x = "Age (Years)", 
+          y = "Total Salary (Dollars)")
+```
+
+### Question 7
+```{r question_7_1, message=FALSE, warning=FALSE}
+dept_summary <- salary_data %>%
+  group_by(dept) %>%
+  summarise(department_size = n(), 
+            mean_department_salary = mean(total_salary), 
+            median_department_salary = median(total_salary), 
+            maximum_salary = max(total_salary))
+
+top_dept_mean <- dept_summary %>%
+  select(dept, mean_department_salary) %>%
+  arrange(desc(mean_department_salary)) %>%
+  slice(1:10)
+
+top_dept_median <- dept_summary %>%
+  select(dept, median_department_salary) %>%
+  arrange(desc(median_department_salary)) %>%
+  slice(1:10)
+
+kable(top_dept_mean)
+kable(top_dept_median)
+```
+
+These lists differ due to variance in department salaries. For, examples, when there are a few professors in certain department with much higher salaries than the norm, they lift the mean salary of that department while leaving the median salary largely the same. Hence, there can differences when looking at the top ten median and mean department salaries. I would use median as it is more representative of a standard departmental salary due to prior mention of the possibility of the mean being inflated.
+
+```{r question_7_2, fig.align='center', message=FALSE, warning=FALSE}
+salary_data %>%
+  filter(dept %in% top_dept_mean$dept) %>%
+  ggplot(aes(x = total_salary, y = dept )) +
+  geom_boxplot() +
+  labs(title = "Boxplot of Mean Department Salaries by Department", 
+       x = "Department", 
+       y = "Mean Salary (Dollars)")
+```
+
+### Question 8
+```{r question_8, message=FALSE, warning=FALSE}
+kable(
+  dept_summary %>%
+    filter(department_size>=25) %>%
+    select(dept)
+)
+
+dept_summary_2010 <- salary_data %>%
+  filter(year(ymd(hiredate)) == 2010) %>%
+  group_by(dept) %>%
+  summarize(hires_2010 = n()) %>%
+  arrange(desc(hires_2010))
+
+top_10_2010 <- dept_summary_2010 %>%
+  slice(1:10)
+
+top_next10_2010 <- dept_summary_2010 %>%
+  slice(11:20)
+
+kable(top_10_2010)
+kable(top_next10_2010)
+```
+
+
+### Question 9
+```{r question_9, fig.align='center', fig.height=6, fig.width=12, message=FALSE, warning=FALSE}
+hires_since_2000 <- function(depts) {
+  data <- salary_data %>%
+    filter(dept %in% depts, 
+           year(ymd(hiredate)) >= 2000) %>%
+    mutate(year = year(ymd(hiredate))) %>%
+    group_by(dept, year) %>%
+    summarize(hires = n(), .groups = 'drop')
+  
+  ggplot(data, aes(x = year, y = hires, color = dept)) +
+    geom_line() + 
+    geom_point() +
+    labs(title = "Graph of Number of Hires by Department since 2000", 
+         x = "Year", 
+         y = "Hires",
+         color = "Departments")
+}
+
+hires_since_2000("Computer Science")
+
+departments <- c("Computer Science", 
+                 "Biostatistics", 
+                 "Economics", 
+                 "Kenan-Flagler Business School", 
+                 "Mathematics", 
+                 "Statistics and Operations Res")
+
+hires_since_2000(departments)
+```
+
+### Database Connection
+```{r db-connection, message=FALSE, warning=FALSE}
+db = dbConnect(MySQL(),
+               user = 'wolffa24',
+               password = '1747280',
+               dbname = 'online_retailer',
+               host = 'ballenger.wlu.edu')
+
+knitr::opts_knit$set(sql.max.print = -1) 
+```
+
+### Question 10
+```{sql connection = db}
+SELECT country, 
+       COUNT(*) AS nbr_customers
+FROM customers
+GROUP BY country
+ORDER BY nbr_customers DESC;
+```
+
+### Question 11
+```{r question_11_1, message=FALSE, warning=FALSE}
+rs <- dbSendQuery(db, 
+  "SELECT country, 
+          customer_id, 
+          invoice_date, 
+          invoice_no AS invoice_nbr, 
+          SKU, 
+          description, 
+          quantity, 
+          actual_unit_price
+   FROM products 
+      JOIN invoice_products USING (SKU) 
+      JOIN invoices USING (invoice_no) 
+      JOIN customers USING (Customer_Id)
+   WHERE Country != 'United Kingdom'"
+)
+
+eu_countries = read.csv("/home/ballengerb@ad.wlu.edu/BUS_316_01/wolffa24/eucountries.csv")
+
+olr_eu_product_sales <- fetch(rs, n=-1) %>%
+  mutate(invoice_date = as.Date(invoice_date),
+         line_item_total = quantity * actual_unit_price,
+         year_month = format(invoice_date, "%Y-%m")) %>%
+  filter(country %in% eu_countries$Country)
+```
+
+There are `r nrow(olr_eu_product_sales)` observations and `r ncol(olr_eu_product_sales)` variables.
+
+```{r question_11_2, message=FALSE, warning=FALSE}
+sales_by_month <- olr_eu_product_sales %>%
+  filter(!is.na(line_item_total), !year_month %in% c("2011-12", "2010-12")) %>%
+  group_by(year_month) %>%
+  summarize(total_monthly_sales = sum(line_item_total, na.rm = TRUE)) %>%
+  arrange(year_month)
+
+kable(sales_by_month)
+```
+
+### Question 12
+```{r question_11, fig.align='center', fig.height=6, fig.width=9, message=FALSE, warning=FALSE}
+ggplot(sales_by_month, aes(x = year_month, y = total_monthly_sales)) +
+  geom_col() +
+  labs(title = "Total Sales by Month",
+       x = "Year & Month",
+       y = "Total Monthly Sales (GBP)") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 8))
+```
+
+### Project Log
+Used the following website to find syntax for centering figures: https://yihui.org/knitr/options/
+
+Used the following website to find arguments for 'summarize()': https://dplyr.tidyverse.org/reference/summarise.html
+
+Used the following website to find syntax to angle x-axis labels: https://ggplot2.tidyverse.org/reference/theme.html
+
+### The Pledge
+On my honor, I have neither given nor received any unacknowledged aid on this assignment.
+
+Alex Wolff, `r Sys.Date()`

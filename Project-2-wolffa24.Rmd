@@ -1,0 +1,196 @@
+---
+title: "BUS 316 - Project 2 - Business Analytics with R"
+author: "Alex Wolff"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+### Load Packages
+```{r load_packages, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(fosdata)
+options(scipen = 999)
+```
+
+### Load Data
+```{r load_data, message=FALSE, warning=FALSE}
+ev_cars <- ecars
+```
+
+### Explore Data 
+```{r explore_data, message=FALSE, warning=FALSE}
+glimpse(ev_cars)
+head(ev_cars)
+```
+
+The dataset `ev_cars` contains information from high resolution electric vehicle charging sessions. This dataset is comprised of `r ncol(ev_cars)` columns and `r nrow(ev_cars)` rows. Some of the data measured includes start and end time, total KW, the amount paid by the user for the charge, etc...
+
+### Question 1 
+```{r exercise_1, message=FALSE, warning=FALSE}
+hist_plot <- function(plot, bin_width, plot_title, x_axis) {
+  p <- ggplot(data = ev_cars, aes_string(x = plot)) +
+        geom_histogram(binwidth = bin_width) +
+        labs(title = plot_title, x = x_axis, y = "Frequency")
+  print(p)}
+```
+
+```{r histogram_khwTotal, message=FALSE, warning=FALSE}
+hist_plot("kwhTotal", 1, "Histogram of Total Energy use of given EV Charging Session in kWh", "kHw Total")
+```
+
+The graph above is a histogram of the total energy use of a given EV charging sessions in KWH. The graph, which is right skewed, has a mode of 7 kWh. The graph seems to follow an exponential distribution that starts on the left side and ends after the value 7. Afterwards the histogram is relatively flat.
+
+```{r histogram_chargetimehrs, message=FALSE, warning=FALSE}
+hist_plot("chargeTimeHrs", 2, "Histogram of Total duration of session in Hours", "Charge Time Hours")
+```
+
+The graph above is histogram of the total duration of a charge session in hours. The histogram is unimodal with outliers in the upper extremities of the graph. The mode of the histogram seems to be about 3 or 4 hours. 
+
+```{r histogram_distance, message=FALSE, warning=FALSE}
+hist_plot("distance", 2, "Histogram of Distance from User's Home to Charging Station", "Distance in Miles")
+```
+
+The graph above is a histogram to that show the frequency of individual distances from a user's home to the charging location, expressed in miles. The histogram has a slight bimodal distribution with outliers in the upper extremities. The mode of the histogram is 25.
+
+```{r histogram_dollars, message=FALSE, warning=FALSE}
+hist_plot("dollars", .5, "Histogram of amount paid by User for given Charging Session", "Dollars")
+```
+
+The graph above is a histogram of the amount of dollars paid by the use for a given charging session. The histogram is severely right skewed and shows a exponential distribution starting from the right and rising sharply toward the lower extremities. The graph has a mode of 0 and outliers in the upper extremities.  
+
+### Question 2
+```{r question_2, message=FALSE, warning=FALSE}
+bar_plot <- function(column, x_axis, plot_title) {
+  p <- ggplot(data = ev_cars, mapping = aes_string(x = column)) +
+        geom_bar() +
+        labs(title = plot_title, x = x_axis, y = "Frequency")
+  print(p)}
+```
+
+```{r hist_weekday, message=FALSE, warning=FALSE}
+bar_plot("weekday", "Week Day","Distribution of Weekdays")
+```
+
+The graph about shows the distribution for the day of the week on which individual charging sessions took place. The distribution looks uniform on week days but seems to drop dramatically on weekends. Thursday has is the most frequent day for charging based on this dataset. 
+
+```{r hist_platform, message=FALSE, warning=FALSE}
+bar_plot("platform", "Platform", "Distribution of Platforms")
+```
+
+The graph above shows the distribution of digital platforms used by the EV driver to log the session. There are only three options: android, IOS, and web. The the most frequently used platform is IOS, followed by andriod and then the web. The web has almost no usage for logging the session of the driver compared to the other two options. 
+
+```{r hist_facilityType, message=FALSE, warning=FALSE}
+bar_plot("facilityType", "Facility Type", "Distribution of Facility Types")
+```
+
+The graph above shows the distribution of categorical variables indicating the type of facility a station is installed. Their are four options for the the type of facilities: manufacturing, office, R&D, and other. The "R&D" is the location type with the highest frequency and "other" is the lowest. 
+
+```{r hist_weekday_fix, message=FALSE, warning=FALSE}
+days <- c("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
+ev_cars <- ev_cars %>%
+  mutate(weekday = factor(weekday, levels = days))
+
+bar_plot("weekday", "Week Day", "Distribution of Weekdays")
+```
+
+The graph above shows a revised version of the previous bar plot for the distribution of days in the week for which charging sessions took place. The results show that there is a pretty consistent number of sessions during the weekdays and weekends have a sharp decline in the number of sessions. 
+
+### Question 3
+```{r question_3, message=FALSE, warning=FALSE}
+ggplot(data = ev_cars, mapping = aes(y = distance, x = facilityType)) +
+  geom_boxplot() +
+  labs(title = "Boxplot of Distance across Facility Type", x = "Facility Type", y = "Distance")
+```
+
+The graph above shows a boxplot that compares the distance from the user's home to the charger across the facility type of the charging station. First, when comparing the different facility types, "Other" does not have enough data points to make accurate conclusions except for median distance being about 17. Looking at the other three facility types, the office has the smallest interquartile range while also having the largest range. Meaning that 75% of charging sessions at the office were done between 28 and 32 miles. In practice, since most people choose to live near their office, those users will have often have the shortest distance to travel to charge their cars- provided that office has a charger. Additionally, the office's large range is most likely due to the fact that when users travel to their office, which is equipped with a charging station, they are more likely to let their car charge while at work instead of finding another station. Hence if they live far away from their job, they will still charge their car at that location, even though another location may be nearer. Research and Development has a median of 20 and an interquartile range of about 3-24, with a range of about 2-34. Manufacturing, has a median of 25, and interquartile range of 5-33, and a range of 4-41. 
+
+### Question 4
+```{r question_4, message=FALSE, warning=FALSE}
+ggplot(data = ev_cars, mapping = aes(y = kwhTotal, x = weekday)) +
+  geom_boxplot() +
+  labs(title = "Boxplot of kWh Total per Day", x = "kHw Total", y = "Distance")
+```
+
+The graph above is a boxplot which compares the total kWh usage for given days of the week. The medians across all days of the week are very similar between 6 and 7. Similarly, the interquartile range is between 4 and 6 kWh for each day of the week except Sunday, whose range is from 4 to 11 kHw. The higher 75th quartile for Sunday could be explained by greater time of leisure for users on that day. All weekdays seem to have many outliers on both ends of the spectrum. Furthermore, Saturday also has outliers on the upper extremities of the plot. Sunday does not have any apparent outliers. 
+
+### Question 5
+```{r question_5, message=FALSE, warning=FALSE}
+ggplot(data = ev_cars, mapping = aes(x = chargeTimeHrs, y = kwhTotal)) +
+  geom_point() +
+  labs(title = "Scatterplot of Charge Time Hours VS kHw Total", x = "Charge Time (Hours)", y = "kHw Total")
+
+ev_cars_clean <- na.omit(ev_cars) %>% 
+  filter(chargeTimeHrs < 24)
+
+ggplot(data = ev_cars, mapping = aes(x = chargeTimeHrs, y = kwhTotal)) +
+  geom_point() +
+  xlim(0, 12)+
+  labs(title = "Scatterplot of Charge Time Hours VS kHw Total", x = "Charge Time (Hours)", y = "kHw Total")
+```
+
+Both graphs are scatter plots of Charge Time Hours VS kHw Total. The first graph includes an outlier which was removed in the second graph. The second graph seems to show a positive relationship between the time of the charge sessions and the total kHw given in a given charge session. At around the 6 or 7 kHw total the graph veers off into two different directions. One end seems to stay flat as time progresses while the other shoots up vertically. Visually it looks likes data points clustering around corner. The line that veers off horizontally is due to the capacity of those batteries being around 7.5. The line that shoots up vertically, is presumably new car models whose batteries with a higher kHw total.
+
+
+### Question 6
+```{r question_6, fig.height=7, fig.width=10, message=FALSE, warning=FALSE}
+ev_cars_clean <- na.omit(ev_cars) %>% 
+  filter(chargeTimeHrs < 24)
+
+ggplot(data = ev_cars_clean, mapping = aes(x = chargeTimeHrs, y = kwhTotal, color = distance)) +
+  geom_point() +
+  xlim(0, 12) +
+  labs(title = "Scatterplot of Charge Time Hours VS kHw Total", x = "Charge Time (Hours)", y = "kHw Total")
+
+ggplot(data = ev_cars_clean, mapping = aes(x = chargeTimeHrs, y = kwhTotal, color = distance, alpha = distance)) +
+  geom_point() +
+  geom_smooth(color = "orange") +
+  xlim(0, 12) +
+  labs(title = "Scatterplot of Charge Time Hours VS kHw Total", x = "Charge Time (Hours)", y = "kHw Total")
+```
+
+At first, without filtering out the invalid data, the graph looks cluttered with a less clear trend. After removing those values the trend in the data becomes much more apparent as many the data points on the outside of the general data curve are erased. Furthermore, adding transparency to the points accentuates the clear trend as transparency is much greater around clusters. In terms of distance the graph shows that vehicles that charging further away from there homes tend to have a higher kHw total. This could be due to users who charge their cars while they are parked away from home.
+
+
+### Question 7
+```{r question_7, fig.height=6, fig.width=8, message=FALSE, warning=FALSE}
+ev_cars_clean <- na.omit(ev_cars) %>% 
+  filter(chargeTimeHrs < 24)
+
+ggplot(data = ev_cars, mapping = aes(x = chargeTimeHrs, y = kwhTotal)) +
+  geom_point() +
+  facet_wrap(. ~ facilityType) +
+  xlim(0, 12) +
+  labs(title = "Scatterplot of Charge Time Hours VS kHw Total", x = "Charge Time (Hours)", y = "kHw Total")
+```
+
+The pattern for electric charging is largely the same by facility. Each of the different facilities follow a similar positive trends where an increase in charge hours results in an increase in kHw total. The results are congruent with the theory that the longer a user is using the charging station the more khw they are likely to use. It should be noted that the "other" facility does not have as many data points as manufacturing, office, and "R&D", making it harder to compare resutls to the other facility types. 
+
+### Question 8
+```{r question_8, fig.height=7, fig.width=10, message=FALSE, warning=FALSE}
+ggplot(data = ev_cars, mapping = aes(x = chargeTimeHrs)) +
+  geom_histogram(bins = 30) +
+  facet_wrap(~ weekday) +
+  xlim(0, 10) +
+  labs(title = "Distribution of Charging times based on day of the week", x = "Charge Time (Hours)", y = "kHw Total")
+```
+
+Based on the histograms above there is a clear uptick in the kHw total during the days of the week and a sharp decrease on weekend days. Each of the weekday graphs have a normal distribution whose center is around 2.5 hours. For the histograms of the weekend days, Saturday seems to follow a normal distribution with a center of 2.5, however, its low frequency makes it difficult to draw conclusions from. Finally, Sunday's distribution plot is almost completely flat, indicating there is little to no charging being recorded on Sunday for this dataset. 
+
+### Question 9
+```{r question_9, fig.height=10, message=FALSE, warning=FALSE}
+ggplot(data = ev_cars, mapping = aes(x = chargeTimeHrs)) +
+  geom_histogram() +
+  facet_grid(weekday ~ .) +
+  xlim(0, 10) +
+  labs(title = "Distribution of Charging times based on day of the week", x = "Charge Time (Hours)", y = "kHw Total")
+```
+
+Formatting the graphs in this way offers a better visual representation for analysis. By staking the graphs one above the other you can see whether there exists trends in the data. From this representation we can clearly see that week days have very similar distributions and that the behavior of users is largely the same during these time periods. Furthermore, we can clearly see that each of the weekdays have a similar center meaning they have the similar modes. Finally, we can also see the difference between weekdays and weekends. The histograms for the week days show a sharp decrease in total kHw and lower center for charge time. By stacking the graphs this way, the contrast in data from day to day is more pronounced.  
+
+### Project Log
+Used the following website to find the 'aes_string' function which was used in the first question: https://ggplot2.tidyverse.org/reference/aes_.html.
+
+### The Pledge
+On my honor, I have neither given nor received any unacknowledged aid on this assignment.
+
+-Alex Wolff
