@@ -1,6 +1,6 @@
 # BUS-316---Business-Analytics
 
-This repository contains two R Markdown files developed for the BUS 316 course, focusing on business analytics using R. Each project file is designed to perform data analysis and visualization in HTML format.
+This repository contains two R Markdown files and HTML files developed for the BUS 316 course, focusing on business analytics using R. Each project file is designed to perform data analysis and visualization in HTML format.
 
 File Descriptions:
 
